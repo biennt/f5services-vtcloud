@@ -16,3 +16,7 @@ tmsh show sys config
 
 đây là một đường [link](https://viettelcloud.vn)
 
+đây là ảnh:
+
+![ảnh đơn card mạng](./single-nic.png "Single NIC")
+
