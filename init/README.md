@@ -33,5 +33,44 @@ Mô hình này phù hợp với trường hợp khách hàng sử dụng các th
 
 ## Hướng dẫn cấu hình
 
+Khởi tạo thành phần F5 BIG-IP
+=============================================================================
+(phần này cho VTS đảm nhận, viết hướng dẫn để cán bộ vận hành hoặc khách hàng tự khởi tạo mới 1 VM F5 BIG-IP)
+
+Kích hoạt license cho F5 BIG-IP
+=============================================================================
+Sau khi quá trình khởi tạo F5 BIG-IP instance hoàn tất, cán bộ vận hành sẽ nhận được thông tin về instance này bao gồm địa chỉ IP quản trị, mật khẩu của tài khoản root khi kết nối qua SSH và mật khẩu của tài khoản admin khi hết nối qua giao diện quản trị web HTTPS
+
+Người quản trị cũng cần chuẩn bị trước 1 base license key (base key) và có thể kèm theo một license mở rộng tính năng nếu có (addon key)
+
+.. seealso:: Tại lần đăng nhập đầu tiên, hệ thống có thể yêu cầu người quản trị đổi mật khẩu trước khi tiến hành các bước tiếp theo.
+
+Trên giao diện quản trị, màn hình yêu cầu kích hoạt license hiện ra 
+
+.. image:: /_static/vng-bigip-license.png
+
+.. image:: /_static/vng-bigip-license-key.png
+
+.. image:: /_static/license-activate1.png
+
+.. image:: /_static/license-activate2.png
+
+.. image:: /_static/license-activate3.png
+
+.. image:: /_static/license-activate4.png
+
+Khởi tạo các module tính năng
+=============================================================================
+Sau khi kích hoạt license, hệ thống sẽ yêu cầu người quản trị lựa chọn các module tính năng sẽ sử dụng (provisioning). Tùy thuộc vào license và nhu cầu sử dụng để lựa chọn các tính năng sẽ sử dụng.
+
+.. image:: /_static/provisioning.png
+
+.. seealso:: Trong quá trình sử dụng, nếu có nhu cầu thay đổi (bật/tắt) các tính năng này, có thể vào menu System --> Resource Provisioning để thấy màn hình trên.
+
+Thiết lập các cấu hình cơ bản cho F5 BIG-IP
+=============================================================================
+
+Tùy chọn: Cấu hình với nhiều hơn một card mạng - Multi-NIC (ví dụ 3 NIC)
+=============================================================================
 ## Liên hệ hỗ trợ
 Yêu cầu hỗ trợ kỹ thuật xin gửi đến địa chỉ: techsupport@viettelcloud.vn
