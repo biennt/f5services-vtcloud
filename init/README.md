@@ -33,20 +33,24 @@ Mô hình này phù hợp với trường hợp khách hàng sử dụng các th
 
 ## Hướng dẫn cấu hình
 
-### Khởi tạo thành phần F5 BIG-IP
+### Khởi tạo máy ảo F5 BIG-IP
 Đặt nhập vào Viettel Cloud Console, tạo mới Server với các thông tin như sau:
 
 Thông tin chung về Region, tên server, loại máy chủ, cấu hình, loại hệ điều hành, version. Yêu cầu tối thiểu 8 vCPU, 16GB RAM:
+
 ![](./create_server_1.png "")
 
-Thông tin cho ổ đĩa cứng ảo. Yêu cầu ổ 200Gb SSD
+Thông tin cho ổ đĩa cứng ảo. Yêu cầu ổ 200Gb SSD:
+
 ![](./create_server_2_ssd.png "")
 
 Chọn SSH Key để xác thực
 (hiện tại chức năng này chưa được tích hợp đối với F5 BIG-IP)
+
 ![](./create_server_3_ssh.png "")
 
-Thiết lập mật khẩu cho tài khoản root và tài khoản admin (sử dụng cho quản trị qua giao diện dòng lệnh và giao diện đồ họa):
+Trong phần **Thông tin khác**, mục **Userdata-cloud configuration**, thiết lập mật khẩu cho tài khoản **root** và tài khoản **admin** (sử dụng cho quản trị qua giao diện dòng lệnh và giao diện đồ họa):
+
 ![](./create_server_4_password.png "")
 
 Ví dụ:
@@ -82,11 +86,11 @@ Nếu cả 2 bước trên thành công, tiến hành bước kích hoạt licen
 ```
 SOAPLicenseClient --basekey FCKGK-JEDWV-KWYTT-RGIFL-SBVJNIN
 ```
-(trong đó FCKGK-JEDWV-KWYTT-RGIFL-SBVJNIN là license key làm ví dụ minh họa)
+(trong đó **FCKGK-JEDWV-KWYTT-RGIFL-SBVJNIN** chỉ là license key làm ví dụ minh họa)
 
 Quá trình kích hoạt license có thể mất vài phút, hãy đợi đến khi dấu nhắc lệnh có chữ **Active**. Để thấy sự thay đổi thông tin này trong dấu nhắc lệnh, cần ấn phím **Enter**.
 
-### Các cấu hình cơ bản khác
+### Các cấu hình cơ bản cần thiết khác
 Đăng nhập vào máy ảo F5 BIG-IP qua giao diện SSH bằng tài khoản root (mật khẩu được chỉ định tại bước tạo máy):
 ```
 ssh root@<địa chỉ IP quản trị>
@@ -123,10 +127,12 @@ tmsh modify /sys ntp timezone Asia/Saigon
 Thiết lập hostname (tùy chọn, khuyến nghị nên đặt để tiện định danh theo quy ước chung)
 tmsh modify /sys global-settings hostname bigip1.viettelcloud.vn
 
-Cuối cùng, lưu lại cấu hình bằng lệnh:
+Cuối cùng, **lưu lại cấu hình** bằng lệnh:
 ```
 tmsh save /sys config
 ```
+
+Thoát khỏi phiên làm việc SSH bằng lệnh `exit`.
 
 Như vậy, máy ảo F5 BIG-IP đã sẵn sàng để cấu hình các dịch vụ ứng dụng: cân bằng tải, tường lửa ứng dụng, phòng chống tấn công DOS layer 7.
 
