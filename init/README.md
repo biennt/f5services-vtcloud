@@ -18,16 +18,15 @@ Thành phần cân bằng tải có duy nhất 1 địa chỉ IP public (ví d�
 - Là địa chỉ IP dùng để theo dõi, giám sát trạng thái dịch vụ/ứng dụng một cách chủ động. Nó cũng là địa chỉ mà thành phần cân bằng tải sử dụng để kết nối đến máy chủ đích
 
 3. Mô hình đa card mạng - Multi NIC
-Hình vẽ dưới đây mô tả dạng triển khai thành phần cân bằng tải với nhiều card mạng (ví dụ trong sơ đồ là 3 NIC):
+Hình vẽ dưới đây mô tả dạng triển khai thành phần cân bằng tải với nhiều card mạng (ví dụ trong sơ đồ là 2 NIC):
 
 ![ảnh đa card mạng](./multi-nic.png "Multi NIC")
 
-Thành phần cân bằng tải có 3 NIC với 3 địa chỉ IP riêng biệt, thực hiện các vai trò khác nhau:
-(đây là mô hình được tùy biến từ mô hình Single NIC, người quản trị dịch vụ cloud sẽ gán thêm các card mạng khác (EIP, Private IP) sau khi thành phần cân bằng tải được tạo lập)
+Thành phần cân bằng tải có 2 NIC với 2 địa chỉ IP riêng biệt, thực hiện các vai trò khác nhau:
 
-* 3.3.3.3 là địa chỉ IP quản trị, phục vụ các tác vụ quản trị theo giao thức SSH (port 22), giao diện web theo giao thức HTTPS (port 443)
-* 4.4.4.4 là địa chỉ IP dịch vụ để người dùng cuối kết nối đến (Virtual IP - VIP), thông thường là giao thức HTTP/HTTPS theo các port 80/443 tương ứng. Giải pháp cũng hỗ trợ đồng thời các dịch vụ theo giao thức khác như DNS (port 53 tcp/udp, port 389 LDAP, port 3306 MySQL.. tùy theo nhu cầu sử dụng). Tùy theo nhu cầu, có thể thêm một hoặc nhiều địa chỉ EIP như thế này vào 1 thành phần cân bằng tải.
-* 10.0.0.13 là địa chỉ IP dùng để theo dõi, giám sát trạng thái dịch vụ/ứng dụng một cách chủ động. Tùy theo nhu cầu, có thể thêm một hoặc nhiều địa chỉ Private IP tương tự vào thành phần cân bằng tải. Nó cũng là địa chỉ mà thành phần cân bằng tải sử dụng để kết nối đến máy chủ đích
+* x.y.z.t là địa chỉ IP public (EIP), để người dùng và người quản trị kết nối đến
+
+* 10.11.22.103 là địa chỉ IP private (Private IP), để BIG-IP kết nối tới các máy chủ ảo dịch vụ trong cùng Subnet với nó.
 
 Mô hình này phù hợp với trường hợp khách hàng sử dụng các thành phần server ảo trên cùng nền tảng Viettel Cloud, nằm cùng VPC và chỉ có địa chỉ IP Private. Thành phần cân bằng tải lúc này có thể đóng phai trò như thiết bị bảo vệ cho các máy chủ (nó có thể đảm đương các nhiệm vụ như firewall mạng, firewall ứng dụng, chống ddos, chống bot.. tùy thuộc vào cách thức cấu hình và license đi kèm)
 
