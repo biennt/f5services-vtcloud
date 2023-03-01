@@ -91,10 +91,12 @@ SOAPLicenseClient --basekey FCKGK-JEDWV-KWYTT-RGIFL-SBVJNIN
 Quá trình kích hoạt license có thể mất vài phút, hãy đợi đến khi dấu nhắc lệnh có chữ **Active**. Để thấy sự thay đổi thông tin này trong dấu nhắc lệnh, cần ấn phím **Enter**.
 
 ### Các cấu hình cơ bản cần thiết khác
+
 Đăng nhập vào máy ảo F5 BIG-IP qua giao diện SSH bằng tài khoản root (mật khẩu được chỉ định tại bước tạo máy):
 ```
 ssh root@<địa chỉ IP quản trị>
 ```
+
 Cho phép tài khoản admin có thể đăng nhập SSH và sử dụng shell bash:
 ```
 tmsh modify auth user admin shell bash
@@ -104,17 +106,18 @@ Disable tài khoản root (không cho root đăng nhập qua SSH vì lý do an t
 ```
 tmsh modify /sys db systemauth.disablerootlogin value true
 ```
+
 Tắt cơ chế setup qua giao diện web ban đầu:
 ```
 tmsh modify sys global-settings gui-setup disabled
 ```
+
 Tắt cơ chế kiểm tra IP đối với module xác thực PAM:
 ```
 tmsh modify /sys http auth-pam-validate-ip off
 ```
-Bật các module (tùy thuộc vào license, tính năng cân bằng tải được bật mặc định):
 
-Ví dụ bật tính năng WAF, tính năng chống DDOS Layer 7:
+Bật các module (tùy thuộc vào license, tính năng cân bằng tải được bật mặc định). Ví dụ bật tính năng WAF, tính năng chống DDOS Layer 7:
 ```
 tmsh modify sys provision asm level nominal
 ```
@@ -124,8 +127,11 @@ Thiết lập múi giờ (tùy chọn, khuyến nghị nên đặt để tiện 
 ```
 tmsh modify /sys ntp timezone Asia/Saigon
 ```
+
 Thiết lập hostname (tùy chọn, khuyến nghị nên đặt để tiện định danh theo quy ước chung)
+```
 tmsh modify /sys global-settings hostname bigip1.viettelcloud.vn
+```
 
 Cuối cùng, **lưu lại cấu hình** bằng lệnh:
 ```
