@@ -20,7 +20,7 @@ Thành phần cân bằng tải có duy nhất 1 địa chỉ IP public (ví d�
 3. Mô hình đa card mạng - Multi NIC
 Hình vẽ dưới đây mô tả dạng triển khai thành phần cân bằng tải với nhiều card mạng (ví dụ trong sơ đồ là 3 NIC):
 
-![ảnh đa card mạng](./multi-nic.png "Single NIC")
+![ảnh đa card mạng](./multi-nic.png "Multi NIC")
 
 Thành phần cân bằng tải có 3 NIC với 3 địa chỉ IP riêng biệt, thực hiện các vai trò khác nhau:
 (đây là mô hình được tùy biến từ mô hình Single NIC, người quản trị dịch vụ cloud sẽ gán thêm các card mạng khác (EIP, Private IP) sau khi thành phần cân bằng tải được tạo lập)
@@ -33,44 +33,102 @@ Mô hình này phù hợp với trường hợp khách hàng sử dụng các th
 
 ## Hướng dẫn cấu hình
 
-Khởi tạo thành phần F5 BIG-IP
-=============================================================================
-(phần này cho VTS đảm nhận, viết hướng dẫn để cán bộ vận hành hoặc khách hàng tự khởi tạo mới 1 VM F5 BIG-IP)
+### Khởi tạo thành phần F5 BIG-IP
+Đặt nhập vào Viettel Cloud Console, tạo mới Server với các thông tin như sau:
 
-Kích hoạt license cho F5 BIG-IP
-=============================================================================
-Sau khi quá trình khởi tạo F5 BIG-IP instance hoàn tất, cán bộ vận hành sẽ nhận được thông tin về instance này bao gồm địa chỉ IP quản trị, mật khẩu của tài khoản root khi kết nối qua SSH và mật khẩu của tài khoản admin khi hết nối qua giao diện quản trị web HTTPS
+Thông tin chung về Region, tên server, loại máy chủ, cấu hình, loại hệ điều hành, version. Yêu cầu tối thiểu 8 vCPU, 16GB RAM:
+![](./create_server_1.png "")
 
-Người quản trị cũng cần chuẩn bị trước 1 base license key (base key) và có thể kèm theo một license mở rộng tính năng nếu có (addon key)
+Thông tin cho ổ đĩa cứng ảo. Yêu cầu ổ 200Gb SSD
+![](./create_server_2_ssd.png "")
 
-.. seealso:: Tại lần đăng nhập đầu tiên, hệ thống có thể yêu cầu người quản trị đổi mật khẩu trước khi tiến hành các bước tiếp theo.
+Chọn SSH Key để xác thực
+(hiện tại chức năng này chưa được tích hợp đối với F5 BIG-IP)
+![](./create_server_3_ssh.png "")
 
-Trên giao diện quản trị, màn hình yêu cầu kích hoạt license hiện ra 
+Thiết lập mật khẩu cho tài khoản root và tài khoản admin (sử dụng cho quản trị qua giao diện dòng lệnh và giao diện đồ họa):
+![](./create_server_4_password.png "")
 
-.. image:: /_static/vng-bigip-license.png
+Ví dụ:
+```
+#cloud-config
+chpasswd:
+  list: |
+    root:f5str0ngPa!$word
+    admin:f5str0ngPa!$word
+  expire: False
 
-.. image:: /_static/vng-bigip-license-key.png
+```
 
-.. image:: /_static/license-activate1.png
+Tại các màn hình tiếp theo, xác nhận mọi thông tin đã đúng với yêu cầu, tiến hành khởi tạo máy ảo. Khi quá trình tạo hoàn tất, máy ảo ở trạng thái **Running**, ghi lại địa chỉ IP public được cấp cho máy ảo này để có thể quản trị qua SSH/HTTPS ở các bước tiếp theo.
 
-.. image:: /_static/license-activate2.png
+### Kích hoạt license cho F5 BIG-IP
+Đăng nhập vào máy ảo F5 BIG-IP qua giao diện SSH bằng tài khoản root (mật khẩu được chỉ định tại bước tạo máy):
+```
+ssh root@<địa chỉ IP quản trị>
+```
+Kiểm tra xem máy ảo này có thể kết nối ra ngoài Internet được không bằng cách:
+- Thử truy vấn dns:
+```
+dig google.com
+```
 
-.. image:: /_static/license-activate3.png
+- Thử ping tới 8.8.8.8:
+```
+ping 8.8.8.8
+```
 
-.. image:: /_static/license-activate4.png
+Nếu cả 2 bước trên thành công, tiến hành bước kích hoạt license bằng lệnh sau:
+```
+SOAPLicenseClient --basekey FCKGK-JEDWV-KWYTT-RGIFL-SBVJNIN
+```
+(trong đó FCKGK-JEDWV-KWYTT-RGIFL-SBVJNIN là license key làm ví dụ minh họa)
 
-Khởi tạo các module tính năng
-=============================================================================
-Sau khi kích hoạt license, hệ thống sẽ yêu cầu người quản trị lựa chọn các module tính năng sẽ sử dụng (provisioning). Tùy thuộc vào license và nhu cầu sử dụng để lựa chọn các tính năng sẽ sử dụng.
+Quá trình kích hoạt license có thể mất vài phút, hãy đợi đến khi dấu nhắc lệnh có chữ **Active**. Để thấy sự thay đổi thông tin này trong dấu nhắc lệnh, cần ấn phím **Enter**.
 
-.. image:: /_static/provisioning.png
+### Các cấu hình cơ bản khác
+Đăng nhập vào máy ảo F5 BIG-IP qua giao diện SSH bằng tài khoản root (mật khẩu được chỉ định tại bước tạo máy):
+```
+ssh root@<địa chỉ IP quản trị>
+```
+Cho phép tài khoản admin có thể đăng nhập SSH và sử dụng shell bash:
+```
+tmsh modify auth user admin shell bash
+```
 
-.. seealso:: Trong quá trình sử dụng, nếu có nhu cầu thay đổi (bật/tắt) các tính năng này, có thể vào menu System --> Resource Provisioning để thấy màn hình trên.
+Disable tài khoản root (không cho root đăng nhập qua SSH vì lý do an toàn)
+```
+tmsh modify /sys db systemauth.disablerootlogin value true
+```
+Tắt cơ chế setup qua giao diện web ban đầu:
+```
+tmsh modify sys global-settings gui-setup disabled
+```
+Tắt cơ chế kiểm tra IP đối với module xác thực PAM:
+```
+tmsh modify /sys http auth-pam-validate-ip off
+```
+Bật các module (tùy thuộc vào license, tính năng cân bằng tải được bật mặc định):
 
-Thiết lập các cấu hình cơ bản cho F5 BIG-IP
-=============================================================================
+Ví dụ bật tính năng WAF, tính năng chống DDOS Layer 7:
+```
+tmsh modify sys provision asm level nominal
+```
+Việc bật/tắt các module tính năng như vậy sẽ khiến hệ thống khởi động lại một số tiến trình dịch vụ, chờ một vài phút trước khi tiếp tục.
 
-Tùy chọn: Cấu hình với nhiều hơn một card mạng - Multi-NIC (ví dụ 3 NIC)
-=============================================================================
+Thiết lập múi giờ (tùy chọn, khuyến nghị nên đặt để tiện theo dõi):
+```
+tmsh modify /sys ntp timezone Asia/Saigon
+```
+Thiết lập hostname (tùy chọn, khuyến nghị nên đặt để tiện định danh theo quy ước chung)
+tmsh modify /sys global-settings hostname bigip1.viettelcloud.vn
+
+Cuối cùng, lưu lại cấu hình bằng lệnh:
+```
+tmsh save /sys config
+```
+
+Như vậy, máy ảo F5 BIG-IP đã sẵn sàng để cấu hình các dịch vụ ứng dụng: cân bằng tải, tường lửa ứng dụng, phòng chống tấn công DOS layer 7.
+
 ## Liên hệ hỗ trợ
 Yêu cầu hỗ trợ kỹ thuật xin gửi đến địa chỉ: techsupport@viettelcloud.vn
