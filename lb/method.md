@@ -18,3 +18,12 @@ _<br>Least Connections thường được sử dụng khi các thiết bị cầ
 - **Fastest:** Thuật toán cân bằng tải động hoạt động theo cơ chế đếm số lượng request chưa được xử lý (chưa có phản hồi) và phân phối tới máy chủ hiện còn ít số lượng request chưa xử lý nhất - máy chủ có khả năng xử lý nhanh nhất.
 _<br>Fastest được sử dụng nhằm tối ưu thời gian nhận được phản hồi cho người dùng, đặc biệt hữu ích khi các máy cần cân bằng tải được đặt tại các mạng logic khác nhau._
 
+## Hướng dẫn cấu hình
+### Phương thức Round Robin
+
+Để cấu hình phương thức cân bằng tải
+1. Đăng nhập vào giao diện cấu hình
+2. Lựa chọn `Local Traffic` > `Pools` > `Pool lists`
+3. Chọn pool cần cấu hình trong danh sách pool
+4. Lựa chọn tab `Members`
+5. Tại mục **Load Balancing Method** lựa chọn phương thức `Round Robin`
