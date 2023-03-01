@@ -33,7 +33,7 @@ Mô hình này phù hợp với trường hợp khách hàng sử dụng các th
 
 ## Hướng dẫn cấu hình
 
-### Khởi tạo máy ảo F5 BIG-IP
+### Khởi tạo máy ảo F5 BIG-IP - với trường hợp Single NIC
 Đặt nhập vào Viettel Cloud Console, tạo mới Server với các thông tin như sau:
 
 Thông tin chung về Region, tên server, loại máy chủ, cấu hình, loại hệ điều hành, version. Yêu cầu tối thiểu 8 vCPU, 16GB RAM:
@@ -128,11 +128,6 @@ Thiết lập múi giờ (tùy chọn, khuyến nghị nên đặt để tiện 
 tmsh modify /sys ntp timezone Asia/Saigon
 ```
 
-Thiết lập hostname (tùy chọn, khuyến nghị nên đặt để tiện định danh theo quy ước chung)
-```
-tmsh modify /sys global-settings hostname bigip1.viettelcloud.vn
-```
-
 Cuối cùng, **lưu lại cấu hình** bằng lệnh:
 ```
 tmsh save /sys config
@@ -141,6 +136,133 @@ tmsh save /sys config
 Thoát khỏi phiên làm việc SSH bằng lệnh `exit`.
 
 Như vậy, máy ảo F5 BIG-IP đã sẵn sàng để cấu hình các dịch vụ ứng dụng: cân bằng tải, tường lửa ứng dụng, phòng chống tấn công DOS layer 7.
+
+
+### Hướng dẫn khởi tạo và cấu hình F5 BIG-IP trong trường hợp có 2 NIC
+#### Tạo trước địa chỉ IP Private và EIP
+
+Sử dụng Viettel Cloud Console, chọn dịch vụ **Network**. Vào mục **Subnet** --> **Private IP** --> **Thêm Private IP**. Sau đó nhập vào địa chỉ IP Private muốn tạo (lưu ý rằng địa chỉ này không được trùng với các địa chỉ khác đã được cấp phát/gán trong cùng Subnet đó)
+
+Tương tự, trong phần dịch vụ **Network**, vào mục **Elastic IP** --> **Cấp phát Elastic IP**
+
+Ghi nhớ 2 địa chỉ này (ví dụ ở đây là 117.1.28.13 cho địa chỉ EIP và 10.11.22.101 cho địa chỉ Private IP)
+
+#### Tạo máy ảo F5 BIG-IP với phần tùy chọn "Cấu hình mạng",
+Chọn **Enable Elastic IP**, chọn **Elastic IP** là địa chỉ vừa tạo ở bước trước
+
+Chọn **Enable Private IP**, chọn đúng VPC, Subnet và **Interface** là địa chỉ IP Private vừa tạo ở bước trước.
+
+![](./create_server_5_multinic.png "")
+
+Các phần khác làm tương tự như cho trường hợp Single NIC
+
+#### Cấu hình cơ bản cho F5 BIG-IP trong trường hợp 2 NIC
+
+Sau khi máy ảo khởi động xong, truy cập qua SSH bằng tài khoản root:
+
+```
+ssh root@<địa chỉ IP quản trị>
+```
+Sau đó thực hiện chuỗi các lệnh sau:
+```
+tmsh modify sys db provision.1nicautoconfig value disable
+tmsh modify sys db provision.1nic value forced_enable
+tmsh modify sys httpd ssl-port 8443
+tmsh modify net self-allow defaults add { tcp:8443 }
+tmsh save sys config
+```
+Khởi động lại máy ảo bằng lệnh `reboot`
+
+Đợi cho máy ảo hoàn tất việc khởi động lại, tiếp tục thực hiện các bước sau trên giao diện Bash shell qua SSH với tài khoản root:
+
+Kiểm tra danh sách các Interface bằng lệnh `tmsh list net interface`
+
+Kết quả tương tự như sau:
+```
+net interface 1.0 {
+    if-index 48
+    mac-address fa:16:3e:86:ea:1e
+    media-fixed 10000T-FD
+    media-max auto
+    mtu 9198
+}
+net interface 1.1 {
+    if-index 64
+    mac-address fa:16:3e:3a:a8:31
+    media-fixed 10000T-FD
+    media-max auto
+    mtu 9198
+}
+net interface mgmt {
+    if-index 32
+    mac-address fa:16:3e:86:ea:1e
+    media-active 100TX-FD
+}
+```
+Cần đối chiếu địa chỉ MAC của 1.0 và mgmt xem có trùng với MAC của interface gắn với EIP không (xem trên Viettel Cloud Console)
+
+Cần đối chiếu địa chỉ MAC của 1.1 xem có trùng với MAC của interface gắn với Private IP không (xem trên Viettel Cloud Console)
+
+Nếu sai thì xem lại quá trình tạo máy ảo, tạo IPs và không nên tiếp tục thực hiện các bước bên dưới.
+
+Nếu đúng, tiếp tục thực hiện các bước sau:
+
+Kích hoạt license bằng lệnh `SOAPLicenseClient --basekey <license key>`
+
+Đợi quá trình kích hoạt license hoàn tất, tiếp tục thực hiện:
+
+Tạo VLAN public và gán EIP vào VLAN này:
+
+```
+tmsh create net vlan public_vlan interfaces add { 1.0 { untagged } }
+tmsh create net self public_ip address 117.1.28.13/23 vlan public_vlan allow-service default
+```
+
+Tạo VLAN private và gán Private IP vào VLAN này:
+```
+tmsh create net vlan private_vlan interfaces add { 1.1 { untagged } }
+tmsh create net self private_ip address 10.11.22.101/24 vlan private_vlan
+```
+
+Kiểm tra xem default route đang là địa chỉ nào bằng lệnh:
+```
+tmsh show sys management-route
+```
+Kết quả tương tự như sau:
+```
+sys management-route default {
+    description configured-by-dhcp
+    gateway 117.1.29.254
+    network default
+}
+```
+Lấy địa chỉ này gán cho BIG-IP bằng lệnh:
+```
+tmsh create net route default gw 117.1.29.254
+```
+
+Các bước sau tương tự như đối với trường hợp Single-NIC:
+```
+tmsh modify sys global-settings mgmt-dhcp disabled
+tmsh modify auth user admin shell bash
+tmsh modify /sys db systemauth.disablerootlogin value true
+tmsh modify sys global-settings gui-setup disabled
+tmsh modify /sys http auth-pam-validate-ip off
+tmsh modify /sys global-settings hostname bigip1.viettelcloud.vn
+tmsh modify /sys ntp timezone Asia/Saigon
+```
+
+Có thể bật tắt các module tính năng nếu muốn, ví dụ bật module ASM (cho dịch vụ WAF/Layer 7 DDOS):
+```
+tmsh modify sys provision asm level nominal
+```
+
+Cuối cùng, lưu cấu hình lại và khởi động lại:
+```
+tmsh save sys config
+reboot
+```
+(Lưu ý: từ phiên đăng nhập SSH tiếp theo, sử dụng tài khoản admin thay vì root)
 
 ## Liên hệ hỗ trợ
 Yêu cầu hỗ trợ kỹ thuật xin gửi đến địa chỉ: techsupport@viettelcloud.vn
