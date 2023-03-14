@@ -223,7 +223,7 @@ Tại mục Enforcement Mode, chọn Transparent. Sau đó bấm nút `Save` và
 2. Chuyển qua lại chế độ bypass tính năng WAF
 Vào menu `Local Traffic` > `Virtual Servers` > bấm vào `Virtual Server List`. 
 Sau đó, click chọn virtual server đang cần bypass. Tại màn hình tiếp theo, chọn Tab `Security` > `Policies`.
-Phần `Application Security Policy`, chọn `Disabled`
+Phần `Application Security Policy`, chọn `Disabled`.  
 ![bypass_waf](./bypass_waf.png "bypass_waf")
 Với cách này, hệ thống F5 BIG-IP chỉ hoạt động đơn thuần như một thiết bị cân bằng tải hoặc reverse proxy, không có bất cứ một request nào được kiểm tra về mặt bảo mật. Mọi vi phạm cũng không được xem xét hay ghi log lại.
 
