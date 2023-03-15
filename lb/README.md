@@ -166,6 +166,8 @@ create ltm node 10.11.22.19
 create ltm node 10.11.22.52
 create ltm pool sshpool members add { 10.11.22.19:22 10.11.22.52:22 } monitor tcp
 create ltm virtual vs_sshloadbalance destination 117.1.28.13:2222 ip-protocol tcp pool sshpool source-address-translation { type automap }
+
+save sys config
 ```
 
 Từ máy trạm client, có thể truy cập đến SSH thông qua F5 BIG-IP bằng lệnh:
@@ -176,9 +178,98 @@ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2222 bien@117
 -User phải tồn tại trên tất cả các máy chủ SSH
 -Client phải cho phép không kiểm tra host key và cũng không lưu lại thông tin này
 
-
-
-
 #### 4. Cân bằng tải từ HTTP vào HTTP
+
+Hiện nay, hầu hết các website đều chạy HTTPS, tuy nhiên nếu cần, hệ thống F5 BIG-IP cũng có thể thực hiện cân bằng tải cho giao thức HTTP như bình thường.
+
+Với mô hình này:
+- Client hết nối qua giao thức HTTP với F5 BIG-IP
+- F5 BIG-IP kết nối/chia tải tới các máy chủ dịch vụ cũng qua giao thức HTTP
+
+Ví dụ dưới đây là các lệnh (tmsh) để tạo node, tạo pool và virtual server cho việc cân bằng tải giao thức HTTP:
+```
+create ltm node 10.11.22.19
+create ltm node 10.11.22.52
+create ltm pool http_pool members add { 10.11.22.19:8080 10.11.22.52:8080 } monitor http
+create ltm virtual vs_httploadbalance destination 117.1.28.13:80 ip-protocol tcp pool http_pool profiles add { http } source-address-translation { type automap }
+
+save sys config
+```
+Để test, trên 2 máy chủ web có thể chạy một instance của nginx bằng docker, đơn giản với lệnh như sau:
+```
+sudo docker run -d --name nginx -p 8080:80 nginx
+```
+
+Quan sát trên giao diện quản trị F5 BIG-IP, phần `Local Traffic` > `Pools` > `Pool List` > `http_pool` có báo sẵn sàng không (UP, thể hiện bởi hình tròn mầu xanh lá) trước khi thử truy cập qua địa chỉ VIP của F5 BIG-IP.
+
 #### 5. Cân bằng tải từ HTTPS vào HTTP
+
+Đây là tình huống cũng thường được sử dụng, theo đó:
+- Client hết nối qua giao thức HTTPS với F5 BIG-IP
+- F5 BIG-IP kết nối/chia tải tới các máy chủ dịch vụ qua giao thức HTTP
+
+Để làm được điều này, trên F5 BIG-IP cần có certificate và private key của domain tương ứng, đồng thời cấu hình SSL client profile.
+
+Để import certificate vào F5 BIG-IP, trên giao diện quản trị web của F5 BIG-IP, truy cập vào menu:
+
+`System` > `Certificate Management` > `Traffic Certificate Management` > `SSL Certificate List` > `Import`
+
+Tại màn hình `SSL Certificate/Key Source`:
+- Import Type: chọn **Certificate** nếu import certificate, chọn **Key** nếu import private key
+- Key Name: nhập vào tên key. Có thể đặt tên key và cert trùng nhau (khuyến nghị)
+- Key Source: chọn upload từ file hoặc paste vào nội dung file
+- Security Type: chọn Password nếu private key được bảo vệ bằng mật khẩu, chọn **Normal** nếu không.
+
+Để cấu hình SSL client profile, trên giao diện quản trị web của F5 BIG-IP, vào menu: `Local Traffic` > `Profiles` > `SSL` > `Client`, sau đó bấm vào nút `Create`
+
+Tại màn hình tiếp theo:
+- Name: đặt tên cho profile (để bước sau apply vào Virtual Server), ví dụ **dvwa_clientssl**
+- Phần **Configuration**, mục **Certificate Key Chain**, bấm vào check box ngoài cùng bên phải để nút `Add` hiện ra. Bấm vào nút `Add`. Sau đó chọn certificate và key đã Import trước đó. Nhập vào **Passphrase** nếu private key được bảo vệ bởi mật khẩu khi Import.
+Bấm nút `Add` để hoàn tất.
+
+Ở màn hình ngoài, kéo xuống dưới và bấm vào nút `Finish` để hoàn tất.
+
+Ví dụ dưới đây là các lệnh (tmsh) để tạo node, tạo pool và virtual server cho việc cân bằng tải giao thức HTTPS tới HTTP:
+```
+create ltm node 10.11.22.19
+create ltm node 10.11.22.52
+create ltm pool http_pool members add { 10.11.22.19:8080 10.11.22.52:8080 } monitor http
+create ltm virtual vs_https_to_http destination 117.1.28.13:443 ip-protocol tcp pool http_pool profiles add { http dvwa_clientssl } source-address-translation { type automap }
+
+save sys config
+```
+> Lưu ý ở câu lệnh tạo virtual server bên trên, **dvwa_clientssl** chính là SSL client profile đã tạo trước đó.
+
+Để test, trên 2 máy chủ web có thể chạy một instance của nginx bằng docker, đơn giản với lệnh như sau:
+```
+sudo docker run -d --name nginx -p 8080:80 nginx
+```
+Quan sát trên giao diện quản trị F5 BIG-IP, phần `Local Traffic` > `Pools` > `Pool List` > `http_pool` có báo sẵn sàng không (UP, thể hiện bởi hình tròn mầu xanh lá) trước khi thử truy cập qua địa chỉ VIP của F5 BIG-IP.
+
 #### 6. Cân bằng tải từ HTTPS vào HTTPS
+
+Đây là tình huống người quản trị muốn mã hóa mọi lưu lượng vào/ra bất kể từ hướng nào, theo đó:
+- Client hết nối qua giao thức HTTPS với F5 BIG-IP
+- F5 BIG-IP kết nối/chia tải tới các máy chủ dịch vụ cũng qua giao thức HTTPS
+
+Để làm được điều này, trên F5 BIG-IP cần có certificate và private key của domain tương ứng, đồng thời cấu hình SSL client profile. Tham khảo mục trên để biết cách thức import certificate, private key và tạo SSL client profile
+
+Ngoài ra, khi tạo pool, cũng cần áp dụng cơ chế monitor https và khi tạo virtual server, cũng cần apply SSL server profile.
+
+Ví dụ dưới đây là các lệnh (tmsh) để tạo node, tạo pool và virtual server cho việc cân bằng tải giao thức HTTPS tới HTTP:
+```
+create ltm node 10.11.22.19
+create ltm node 10.11.22.52
+create ltm pool https_pool members add { 10.11.22.19:8443 10.11.22.52:8443 } monitor https
+create ltm virtual vs_https_to_https destination 117.1.28.13:443 ip-protocol tcp pool https_pool profiles add { http dvwa_clientssl serverssl } source-address-translation { type automap }
+
+save sys config
+```
+
+> Lưu ý ở câu lệnh tạo virtual server bên trên, **dvwa_clientssl** chính là SSL client profile đã tạo trước đó, **serverssl** là các thiết lập về SSL để F5 BIG-IP kết nối với máy chủ HTTPS phía sau.
+
+Để test, trên 2 máy chủ web có thể chạy một instance của nginx bằng docker, đơn giản với lệnh như sau:
+```
+sudo docker run -d --name nginx -p 8080:80 -p 8443:443 nginx
+```
+Quan sát trên giao diện quản trị F5 BIG-IP, phần `Local Traffic` > `Pools` > `Pool List` > `https_pool` có báo sẵn sàng không (UP, thể hiện bởi hình tròn mầu xanh lá) trước khi thử truy cập qua địa chỉ VIP của F5 BIG-IP.
