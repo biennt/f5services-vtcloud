@@ -225,14 +225,132 @@ Tại mục Enforcement Mode, chọn Transparent. Sau đó bấm nút `Save` và
 
 Vào menu `Local Traffic` > `Virtual Servers` > bấm vào `Virtual Server List`. 
 Sau đó, click chọn virtual server đang cần bypass. Tại màn hình tiếp theo, chọn Tab `Security` > `Policies`.
-Phần `Application Security Policy`, chọn `Disabled`.  
+Phần `Application Security Policy`, chọn `Disabled`.
+
 ![bypass_waf](./bypass_waf.png "bypass_waf") 
+
 Với cách này, hệ thống F5 BIG-IP chỉ hoạt động đơn thuần như một thiết bị cân bằng tải hoặc reverse proxy, không có bất cứ một request nào được kiểm tra về mặt bảo mật. Mọi vi phạm cũng không được xem xét hay ghi log lại.
 
 ### 3. Thiết lập các signatures, signatureSet
+
+Phần này mặc định rằng người quản trị đã cấu hình một chính sách bảo mật để bảo vệ ứng dụng web, tuy nhiên trong quá trình hoạt động thấy cần thiết phải thay đổi các dấu hiệu tấn công (attack signature). Ở đây:
+- Signature (hay viết đầy đủ là attack signature): là một nhận dạng về dấu hiệu tấn công cụ thể. Hệ thống F5 BIG-IP có một cơ sở dữ liệu về các dấu hiệu tấn công như vậy và thường xuyên được cập nhật. Nếu trong quá trình kiểm tra HTTP request hoặc HTTP response, dữ liệu phù hợp với quy luật nhận dạng như vậy có thể sẽ bị coi là vi phạm chính sách bảo mật khi signature đó được áp dụng.
+- SignatureSet là một tập hợp các signature, được nhóm theo một thể loại nào đó.
+
+Để xem các signature đang được áp dụng đối với một policy, truy cấp vào `Security` > `Application Security` > `Security Policies` > `Policies List`, chọn policy cần xem. Sau đó bấm vào mục `Attack Signatures` 
+
+Ví dụ:
+
+![attack_signature](./attack_signature.png "attack_signature") 
+
+Với mỗi signature, bấm vào biểu tượng mũi tên sẽ cho biết thông tin chi tiết, ví dụ:
+
+![attack_signature](./attack_signature-1.png "attack_signature") 
+
+Trong đó, lưu ý một số thông tin sau:
+- Signature name: tên gọi của signature, phần nào đoán được nó là gì
+- Signature ID: mã định danh của signature, sử dụng để tìm kiếm, mã định danh này là duy nhất đối với F5
+- Learn: tạo ra các gợi ý cho người quản trị về việc có nên áp dụng signature này không dựa vào lưu lượng thực tế (Learning Suggestion)
+- Alarm: tạo cảnh báo nếu có vi phạm
+- Block: chặn tấn công nếu có vi phạm
+- Staging: để ở chế độ giám sát, chưa chặn
+- Enforce: thực hiện chặn vi phạm
+
+Chế độ Signature Staging giúp hạn chế việc chặn nhầm vì nó chỉ tạo cảnh báo, giúp người quản trị có thời gian xem xét.
+
+Ví dụ, việc truy cập vào một URI dạng phpinfo.php trong khi signature ID: 200010015 đang được bật, sẽ tạo ra một cảnh báo trong Events Log như sau:
+
+![attack_signature](./attack_signature-2.png "attack_signature") 
+
+Trong đó nêu rõ các thông tin về vi phạm này, động thời cũng chỉ ra rằng Signature này đang ở chế độ Staging (Staged), nên vi phạm vẫn được bỏ qua trên thực tế (thể hiện bằng mã 200 trả về từ máy chủ).
+
+Nếu người quản trị cho rằng signature này cần phải chặn ngay lập tức, có thể vào mục `Attack Signatures` của policy tương ứng, tìm signature có ID đang cần thay đổi (trường hợp này là 200010015):
+
+![attack_signature](./attack_signature-3.png "attack_signature")
+
+Chọn signature đó và bấm vào nút `Enforce`:
+
+![attack_signature](./attack_signature-4.png "attack_signature")
+
+Sau đó xác nhận lại ở hộp thoại tiếp theo và bấm vào nút `Apply Policy`. Sau bước này, signature đó đã chuyển sang chế độ chặn trên thực tế (`Enforced`).
+
+Người quản trị nên kiểm thử lại để xem kết quả
+
+Truy cập sẽ bị chặn, với một thông báo tương tự như sau tại phía người dùng:
+
+![attack_signature](./attack_signature-5.png "attack_signature")
+
+trong Events Log như sau:
+
+![attack_signature](./attack_signature-6.png "attack_signature")
+
+> Lưu ý: trong phần log trên, `Applied Blocking Settings` đã là `Block` `Alarm` `Learn`, đồng thời không có mã trả về từ server nữa mà thay vào đó là N/A và một cái biển cấm mầu đỏ.
+
+Ngược lại, nếu biết chắc rằng signature đó là chặn nhầm, cần phải cho phép người dùng truy cập mà không chặn hay cảnh báo gì cả, người quản trị có thể tắt signature đó đi (Disable), truy cập vào phần `Attack Signature`, chọn signature đó và bấm vào nút `Disable`, sau đó `Apply Policy`
+
+![attack_signature](./attack_signature-7.png "attack_signature")
+
+Sau khi disable, cũng nên kiểm tra lại xem truy cập đã bình thường chưa, có log vi phạm gì không.
+
+Với SignatureSet, thay vì thực hiện theo từng signature cụ thể như trên (có hàng nghìn signature như vậy), người quản trị có thể bật tắt theo nhóm. 
+
+Truy cập vào `Security` > `Application Security` > `Policy Building` > `Learning and Blocking Settings`, chọn policy tương ứng, mở rộng mục `Attack Signatures`:
+
+![attack_signature](./attack_signature-8.png "attack_signature")
+
+Nếu muốn thêm bớt các SignatureSet, bấm vào nút `Change`
+
+![attack_signature](./attack_signature-9.png "attack_signature")
+
+> Lưu ý: cần bấm vào nút `Save` bên dưới và sau đó bấm vào nút `Apply Policy` bên trên để thay đổi có hiệu lực ngay.
+
 ### 4. Thiết lập chế độ chặn dựa vào địa chỉ IP theo khu vực địa lý
+
+Trong một số trường hợp, người quản trị muốn cho phép hoặc ngăn chặn các truy cập đến từ một khu vực địa lý cụ thể nào đó. Để làm điều này, truy cập vào `Security` > `Application Security` > `Geolocation Enforcement`. Ví dụ dưới đây là chặn truy cập từ Đài Loan:
+
+![geoblocking.png](./geoblocking.png "geoblocking.png")
+
+> Lưu ý: bấm `Save` và `Apply Policy` để thiết lập có hiệu lực ngay.
+
+Kiểm tra trong Event Log:
+
+![geoblocking.png](./geoblocking-1.png "geoblocking.png")
+
+Một thiết lập như bên dưới đây sẽ chỉ cho phép truy cập từ Việt Nam:
+
+![geoblocking.png](./geoblocking-2.png "geoblocking.png")
+
 ### 5. Thiết lập chế độ chặn dựa vào địa chỉ IP độc hại
+
+Để thực hiện được tính năng này, cần đăng ký dịch vụ `IP Intelligent`, cách làm như sau:
+
+Vào mục `Security` > `Network Firewall` > `IP Intelligence` > `Policies`. Bấm vào nút `Create` để tạo mới policy
+
+![ipi.png](./ipi.png "ipi.png")
+
+Thực hiện:
+- Đặt tên cho policy
+- Thiết lập Default Action: hành động mặc định, ví dụ Drop
+- Thiết lập Default Log Actions: mặc định có ghi log hay không
+- Phần Category, thêm hoặc bớt các Category mong muốn kiểm soát
+
+![ipi.png](./ipi-1.png "ipi.png")
+
+Cuối cùng, bấm vào nút `Commit Changes to System`. 
+Bước tiếp theo, áp dụng policy này cho Virtual Server:
+Vào `Local Traffic`  ››  `Virtual Servers : Virtual Server List`  ›› chọn virtual server đang cần tác động, ví dụ `vs_https_dvwa` như minh họa bên dưới, chọn Tab `Security` > `Policies`:
+
+Trong mục `IP Intelligence`, chọn `Enabled` và chọn policy mới tạo ở trên
+
+![ipi.png](./ipi-2.png "ipi.png")
+
+Click vào nút `Update`.
+
+Để xem log các vi phạm này, vào `Security`  ››  `Event Logs : Network : IP Intelligence`
+
 ### 6. Thiết lập chế độ chống tấn công dò quét mật khẩu
+
+
 ### 7. Cấu hình các chế độ bảo vệ parameter
 ### 8. Tính năng mã hóa dữ liệu trên trình duyệt
 ### 9. Sao lưu và phục hồi chính sách bảo mật
