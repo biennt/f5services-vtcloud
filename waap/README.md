@@ -558,11 +558,11 @@ Làm như vậy sẽ hạn chế được tương đối các khả năng chèn 
 ![parameter](./parameter-1.png "parameter")
 
 - Parameter Name: đặt tên cho tham số, cái này phải chính xác với ứng dụng thực tế. Sử dụng các tính năng cho developer trên trình duyệt để tìm hiểu tên parameter.
-- Perform Staging: có thực thi các thiết lập này ngay lập tức không hay chỉ cảnh báo để tránh nhầm lẫn, sai sót. Ví dụ minh họa bên dưới là thực hiện ngay (tắt Staging)
+- Perform Staging: có thực thi các thiết lập này ngay lập tức không hay chỉ cảnh báo để tránh nhầm lẫn, sai sót. Ví dụ minh họa là thực hiện ngay (tắt Staging)
 - Minimum Length: độ dài tối thiểu của tham số này. Ví dụ với địa chỉ IP, độ dài tối thiểu là 7 (4 chữ số và 3 dấu chấm)
 - Maximum Length: độ dài tối đa của tham số này. Ví dụ trong trường hợp này là 15 (4 con số dài 3 chữ số và 3 dấu chấm).
 
-Click vào tab `Value Meta Characters`, thay đổi các ký tự được phép và không được phép đối với dữ liệu của tham số này:
+Click vào tab `Value Meta Characters`, thay đổi các ký tự được phép và không được phép đối với dữ liệu của tham số này (chỉ cho phép các con số `0-9` và dấu `.`)
 
 ![parameter](./parameter-2.png "parameter")
 
@@ -576,8 +576,70 @@ Chiến lược này gọi là Positive Security - chỉ ra các quy tắc hợp
 
 ### 8. Tính năng mã hóa dữ liệu trên trình duyệt
 
+Hầu hết các tính năng WAF trong tài liệu này đều thực thi phía F5 BIG-IP, riêng đối với tính năng này là thực hiện tại trình duyệt của người dùng. Theo đó, một đoạn mã javascript sẽ được gửi tới trình duyệt của người dùng nhằm mã hóa các trường thông tin nhạy cảm (username, password..). Việc mã hóa này sẽ tránh được các plug-in độc hại trên trình duyệt đánh cắp các thông tin này.
+
+Ví dụ, một form như dưới đây, khi người dùng nhập dữ liệu xong và chưa bấm vào nút `Login` (chưa submit dữ liệu), hoàn toàn có thể đọc thông tin trong form đó bằng các đoạn mã javascript, chẳng hạn lấy giá trị của password bằng hàm `document.forms[0].password.value` .
+
+![appencrypt](./appencrypt.png "appencrypt")
+
+Để mã hóa dữ liệu ngay từ phía trình duyệt (và nhiều tính năng cao cấp khác), cần cấu hình tính năng `DataSafe`.
+
+Trước hết, cần bật module `Fraud Protection Service (FPS)`
+
+![appencrypt](./appencrypt-1.png "appencrypt")
+
+Tạo một local log publisher để có thể xem log liên quan đến tính năng này ngay trên F5 BIG-IP
+
+![appencrypt](./appencrypt-2.png "appencrypt")
+
+> Khuyến nghị: cấu hình một máy chủ log bên ngoài, và đẩy log phần này ra đó nếu muốn lưu trữ lâu dài.
+
+Truy cập vào `Security`  ››  `Data Protection : BIG-IP DataSafe`, bấm vào nút `Create` 
+
+Đặt tên cho profile, chỉ định Local Syslog Publisher vừa tạo bước trên.
+
+![appencrypt](./appencrypt-3.png "appencrypt")
+
+Bấm nút `Create` để tạo profile, sau đó tiếp tục cấu hình các URL, Parameter và tính năng bảo vệ.
+
+Phần `URL List`, bấm nút `Add` để định nghĩa 1 URL cần bảo vệ. URL Path là `/login.php`
+
+![appencrypt](./appencrypt-4.png "appencrypt")
+
+Phần Parameters, thêm vào 2 parameter là `username` và `password` như hình minh họa dưới đây (nhớ chọn mục `Encrypt`):
+
+![appencrypt](./appencrypt-5.png "appencrypt")
+
+![appencrypt](./appencrypt-6.png "appencrypt")
+
+Bấm nút `Save` để lưu lại các parameter đối với URL này và `Back to Profile` để quay ra ngoài màn hình cấu hình profile và bấm vào nút `Save` để lưu lại cấu hình.
+
+Để áp dụng tính năng này cho virtual server, truy cập vào `Local Traffic`  ››  `Virtual Servers : Virtual Server List`  ››  chọn virtual server cần bảo vệ ví dụ `vs_https_dvwa`, trong tab `Security` > `Policies`, phần `DataSafe Profile` chọn `Enabled` và chọn  profile vừa cấu hình như minh họa bên dưới:
+
+![appencrypt](./appencrypt-7.png "appencrypt")
+
+Click vào nút `Update` để lưu lại. Sau đó kiểm tra.
+
+Quay trở lại trình duyệt, thử thực hiện lại hành động đọc thông tin từ trường password (đã được biến đổi thành các chữ `aaaaaaa`):
+
+![appencrypt](./appencrypt-8.png "appencrypt")
+
+Đặc biệt, khi submit thông tin, trường username được che dấu (obfuscate) và mã hóa (encrypt) như hình minh họa bên dưới:
+
+![appencrypt](./appencrypt-9.png "appencrypt")
 
 ### 9. Sao lưu và phục hồi chính sách bảo mật
+
+Để sao lưu (chính xác là `Export`), vào mục `Security` > `Application Security : Security Policies : Policies List`, chọn policy cần export rồi bấm vào nút `Export` --> `Export Policies`. Hệ thống sẽ cho download về một file có khuôn dạng XML hoặc nhị phân tùy thuộc vào lựa chọn.
+
+![export](./export.png "export")
+
+Để phục hồi chính sách bảo mật từ 1 file đã export trước đó, vào 
+`Security`  ››  `Application Security : Security Policies : Policies List`, chọn `Import Policy`
+
+![import](./import.png "import")
+
+Sau đó vào phần cấu hình virtual server, mục `Security` > `Policies` để áp dụng
 
 
 ## III. Liên hệ hỗ trợ
