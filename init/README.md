@@ -225,7 +225,7 @@ tmsh create net self private_ip address 10.11.22.101/24 vlan private_vlan
 
 Kiểm tra xem default route đang là địa chỉ nào bằng lệnh:
 ```
-tmsh show sys management-route
+tmsh list sys management-route
 ```
 Kết quả tương tự như sau:
 ```
