@@ -57,8 +57,8 @@ Ví dụ:
 #cloud-config
 chpasswd:
   list: |
-    root:f5str0ngPa!$word
-    admin:f5str0ngPa!$word
+    root:f5str0ngPa@$word
+    admin:f5str0ngPa@$word
   expire: False
 
 ```
