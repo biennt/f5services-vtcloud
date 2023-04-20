@@ -92,12 +92,17 @@ Và đây là thông tin về máy ảo Standby:
 
 ![](./standby-sync.png "")
 
+Để cấu hình đồng bộ các chính sách bảo mật cho WAF, vào `Security  ››  Options : Application Security : Synchronization : Application Security Synchronization`, chọn Device Group tương ứng. Click vào nút `Save`.
+
+![](./policy-sync.png "")
+
 Tạo một virtual server với địa chỉ Virtual IP được cung cấp để thử hoạt động:
 
 ![](./test-vs.png "")
 
 Phần Virtual Addresses, chúng ta sẽ thấy là địa chỉ này thuộc về **traffic-group-1**, nghĩa là nó là địa chỉ floating, trôi nổi giữa 2 máy ảo tuỳ thuộc vào máy nào đang active
 ![](./test-virtual-address.png "")
+
 
 ## Liên hệ hỗ trợ
 Yêu cầu hỗ trợ kỹ thuật xin gửi đến địa chỉ: techsupport@viettelcloud.vn
