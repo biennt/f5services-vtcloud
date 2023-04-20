@@ -1,0 +1,17 @@
+I. Lý do vì sao cần làm EDGE
+II. Dịch vụ nào chạy ở EDGE
+III. Thiết kế tổng quan
+IV. Mô hình luồng dịch vụ
+1. Mail
+2. DNS
+
+3. CDN (không đóng container, chỉ cache bằng đĩa cứng, dùng nginx proxy cache) --> có origin
+
+5. Statics (đóng container để chạy) --> không có origin
+5. Hook --> từ mạng xã hội bắn vào 
+6. API --> api nào chạy ở edge ??!!! 
+---> API ấy chạy với một bản cache Redis (tức là API ở CMC vẫn phải chạy ngon)
+---> API ấy chạy độc lập với 1 bản copy của cơ sở dữ liệu được đồng bộ
+
+V. Lựa chọn  platform
+
